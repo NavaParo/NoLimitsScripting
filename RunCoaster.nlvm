@@ -1,0 +1,295 @@
+import com.nolimitscoaster.*;
+
+public class RunCoaster extends Script
+{	
+	//Reference to the coaster
+	private Coaster coaster;
+	//Initialize all Sections with functions
+	private Section stationLoad;
+	private Section liftLaunch;
+	private Section reLaunch;
+	private Section brakeReLaunch;
+	private Section brakeMCTT;
+	private Section bumpLaunch;
+	private Section finBrakeTrim;
+	private Section finBrake;
+	private Section brakePreStation;
+	private Section stationUnload;
+	
+	private Section storageTransport;
+	private Section storageTransit;
+	private Section storage1A;
+	private Section storage1B;
+	private Section storage2A;
+	private Section storage2B;
+	private Section storage3A;
+	private Section storage3B;
+	
+	
+	//Initialize all Special Tracks and Triggers
+	private SpecialTrack switch1;
+	private SpecialTrack mctt;
+	private SpecialTrack storageToTrack;
+	private SpecialTrack storageTransfer;
+	
+	//Initialize all Blocks
+	private Block stationLaunchBlock;
+	private Block liftLaunchBlock;
+	private Block backwardsBlock;
+	private Block mcttBlock;
+	private Block preBumpLaunchBlock;
+	private Block preBrakeBlock;
+	private Block finalTurnBlock;
+	private Block stationUnloadBlock;
+	
+	private Block storageTransitBlock;
+	private Block storage1aBlock;
+	private Block storage1bBlock;
+	private Block storage2aBlock;
+	private Block storage2bBlock;
+	private Block storage3aBlock;
+	private Block storage3bBlock;
+	
+	private void registerBlockStates(Block block)
+	{
+		block.registerState(0,"Free",block.LAMP_OFF);
+		block.registerState(1,"Occupied",block.LAMP_ON);
+		block.registerState(2,"Resetting",block.LAMP_ON);
+		block.registerState(3,"Waiting for Clearance",block.LAMP_FLASHING);
+		
+		
+		System.out.println("Registered states for Block: " + block.getName());
+	}
+	
+	private void updateBlock(Block block,Block nextBlock)
+	{
+		if(block.getNumberOfTrainsOnBlock() == 0)
+		{
+			if(block.getState() != 2);
+			{
+				block.setState(0);
+			}
+		} else {
+			if(nextBlock.getState() == 0)
+			{
+				block.setState(1);
+			} else {
+				block.setState(3);
+			}
+		}
+	}
+	
+	/*
+	private void updateStorage()
+	{
+		if(storage1aBlock.getNumberOfTrainsOnBlock() == 0) storage1aBlock.setState(0);
+		else storage1aBlock,setState(2);
+		
+		if(storage1bBlock.getNumberOfTrainsOnBlock() == 0) storage1bBlock.setState(0);
+		else storage1bBlock,setState(2);
+		
+		if(storage2aBlock.getNumberOfTrainsOnBlock() == 0) storage2aBlock.setState(0);
+		else storage2aBlock,setState(2);
+		
+		if(storage2bBlock.getNumberOfTrainsOnBlock() == 0) storage2bBlock.setState(0);
+		else storage2bBlock,setState(2);
+		
+		if(storage3aBlock.getNumberOfTrainsOnBlock() == 0) storage3aBlock.setState(0);
+		else storage3aBlock,setState(2);
+		
+		if(storage3bBlock.getNumberOfTrainsOnBlock() == 0) storage3bBlock.setState(0);
+		else storage3bBlock,setState(2);
+	}
+	*/
+	
+	public bool onInit()
+	{
+		//Get the entity ID of the coaster this script is attached to
+		int parentID = getParentEntityId();
+		
+		//Get a reference to the scene object instance
+		coaster = sim.getCoasterForEntityId(parentID);
+		
+		if(coaster == null)
+		{
+			return false;
+		}
+		
+		//Assign Sections from core Track
+		stationLoad = coaster.getSection("StationLoad");
+		if(stationLoad != null) System.out.println("Found Loading Station Section");
+		liftLaunch = coaster.getSection("LiftLaunch");
+		if(liftLaunch != null) System.out.println("Found Lift Launch Section");
+		reLaunch = coaster.getSection("ReLaunch");
+		if(reLaunch != null) System.out.println("Found ReLaunch Section");
+		brakeReLaunch = coaster.getSection("BrakeReLaunch");
+		if(brakeReLaunch != null) System.out.println("Found ReLaunch Brake Section");
+		brakeMCTT = coaster.getSection("BrakeMCTT");
+		if(brakeMCTT != null) System.out.println("Found MCTT Brake Section");
+		bumpLaunch = coaster.getSection("BumpLaunch");
+		if(bumpLaunch != null) System.out.println("Found Bump Launch Section");
+		finBrakeTrim = coaster.getSection("FinalBrakeTrim");
+		if(finBrakeTrim != null) System.out.println("Found Trim Brake Section");
+		finBrake = coaster.getSection("FinalBrakeBlock");
+		if(finBrake != null) System.out.println("Found Final Block Brake Section");
+		brakePreStation = coaster.getSection("BrakePreStation");
+		if(brakePreStation != null) System.out.println("Found PreStation Brake Section");
+		stationUnload = coaster.getSection("StationUnload");
+		if(stationUnload != null) System.out.println("Found Unload Station Section");
+		
+		//Assign Sections from Storage
+		storageTransport = coaster.getSection("StorageTransport");
+		if(storageTransport != null) System.out.println("Found Storage Trasport Section");
+		storageTransit = coaster.getSection("StorageTransit");
+		if(storageTransit != null) System.out.println("Found Storage TransferTrack Brake Section");
+		storage1A = coaster.getSection("Store1A");
+		if(storage1A != null) System.out.println("Found Storage 1A Section");
+		storage1B = coaster.getSection("Store1B");
+		if(storage1B != null) System.out.println("Found Storage 1B Section");
+		storage2A = coaster.getSection("Store2A");
+		if(storage2A != null) System.out.println("Found Storage 2A Section");
+		storage2B = coaster.getSection("Store2B");
+		if(storage2B != null) System.out.println("Found Storage 2B Section");
+		storage3A = coaster.getSection("Store3A");
+		if(storage3A != null) System.out.println("Found Storage 3A Section");
+		storage3B = coaster.getSection("Store3B");
+		if(storage3B != null) System.out.println("Found Storage 3B Section");
+		
+		System.out.println("");
+		System.out.println("Finished assigning Sections");
+		System.out.println("---------------------------------------------------");
+		
+		
+		//Assign Blocks and register States of Core Track
+		stationLaunchBlock = coaster.getBlock("StationUnload");
+		if(stationLaunchBlock == null) System.err.println("Couldn't find stationLaunch Block");
+		registerBlockStates(stationLaunchBlock);
+		liftLaunchBlock = coaster.getBlock("BrakeReLaunch");
+		if(liftLaunchBlock == null) System.err.println("Couldn't find liftLaunch Block");
+		registerBlockStates(liftLaunchBlock);
+		backwardsBlock = coaster.getBlock("BackwardsBlockRegisterer");
+		if(backwardsBlock == null) System.err.println("Couldn't find backwards Block");
+		registerBlockStates(backwardsBlock);
+		mcttBlock = coaster.getBlock("BrakeMCTT");
+		if(mcttBlock == null) System.err.println("Couldn't find MCTT Block");
+		registerBlockStates(mcttBlock);
+		preBumpLaunchBlock = coaster.getBlock("BumpLaunch");
+		if(preBumpLaunchBlock == null) System.err.println("Couldn't find Pre-Bump-Launch Block");
+		registerBlockStates(preBumpLaunchBlock);
+		preBrakeBlock = coaster.getBlock("FinalBrakeBlock");
+		if(preBrakeBlock == null) System.err.println("Couldn't find final Block");
+		registerBlockStates(preBrakeBlock);
+		finalTurnBlock = coaster.getBlock("BrakePreStation");
+		if(finalTurnBlock == null) System.err.println("Couldn't find final Turn Block");
+		registerBlockStates(finalTurnBlock);
+		stationUnloadBlock = coaster.getBlock("StationUnload");
+		if(stationUnloadBlock == null) System.err.println("Couldn't find Unload-Station Block");
+		registerBlockStates(stationUnloadBlock);
+		
+		//Assign Storage Blocks
+		storageTransitBlock = coaster.getBlock("StorageTransit");
+		if(storageTransitBlock == null) System.err.println("Couldn't find Storage Transit Block");
+		registerBlockStates(storageTransitBlock);
+		storage1aBlock = coaster.getBlock("Store1A");
+		if(storage1aBlock == null) System.err.println("Couldn't find Storage 1A Block");
+		registerBlockStates(storage1aBlock);
+		storage1bBlock = coaster.getBlock("Store1B");
+		if(storage1bBlock == null) System.err.println("Couldn't find Storage 1B Block");
+		registerBlockStates(storage1bBlock);
+		storage2aBlock = coaster.getBlock("Store2A");
+		if(storage2aBlock == null) System.err.println("Couldn't find Storage 2A Block");
+		registerBlockStates(storage2aBlock);
+		storage2bBlock = coaster.getBlock("Store2B");
+		if(storage2bBlock == null) System.err.println("Couldn't find Storage 2B Block");
+		registerBlockStates(storage2bBlock);
+		storage3aBlock = coaster.getBlock("Store3A");
+		if(storage3aBlock == null) System.err.println("Couldn't find Storage 3A Block");
+		registerBlockStates(storage3aBlock);
+		storage3bBlock = coaster.getBlock("Store3B");
+		if(storage3bBlock == null) System.err.println("Couldn't find Storage 3B Block");
+		registerBlockStates(storage3bBlock);
+		
+		System.out.println("");
+		System.out.println("Finished assigning Blocks and registering States...");
+		System.out.println("---------------------------------------------------");
+		
+		//Assign Special Tracks
+		switch1 = coaster.getSpecialTrack("Switch1");
+		if(switch1 != null) System.out.println("Found Track Switch");
+		mctt = coaster.getSpecialTrack("MCTT");
+		if(mctt != null) System.out.println("Found MCTT");
+		storageToTrack = coaster.getSpecialTrack("StorageToTrack");
+		if(storageToTrack != null) System.out.println("Found StorageToTrack Table");
+		storageTransfer = coaster.getSpecialTrack("StorageTransfer");
+		if(storageTransfer != null) System.out.println("Found Storage Transfer Track");
+		
+		System.out.println("");
+		System.out.println("End of Initialization");
+		System.out.println("---------------------------------------------------");
+		return true;
+	}
+	
+	public void onNextFrame(float tick)
+	{
+		
+		//Update Blocks back to front
+		updateBlock(stationUnloadBlock,stationLaunchBlock);
+		updateBlock(finalTurnBlock,stationUnloadBlock);
+		updateBlock(preBrakeBlock,finalTurnBlock);
+		updateBlock(preBumpLaunchBlock,preBrakeBlock);
+		updateBlock(mcttBlock,preBumpLaunchBlock);
+		updateBlock(backwardsBlock,mcttBlock);
+		updateBlock(liftLaunchBlock,backwardsBlock);
+		updateBlock(stationLaunchBlock,liftLaunchBlock);
+		
+		//updateStorage();
+		
+		if(stationLoad.isStationWaitingForClearBlock() == true && liftLaunchBlock.getState() == 0)
+		{
+			stationLoad.setStationNextBlockClear();
+			System.out.println("Told Station Clear Block");
+		}
+		
+		//Launching out of Station
+		if(stationLoad.isStationWaitingForAdvance() == true)
+		{
+			stationLoad.setStationLeaving();
+			stationLoad.setBrakesOff();
+			stationLoad.setTransportsLaunchFwdOn();
+			liftLaunch.setTransportsStandardFwdOn();
+			System.out.println("Launching out of Station");
+		}	
+		
+		//Switching on Safety Brakes for Launch
+		if(stationLaunchBlock.getState() == 1 && stationLoad.getTrainOnSection() == null && !stationLoad.isBrakesOn())
+		{
+			stationLoad.setBrakesOn();
+			System.out.println("Switching on Station Brakes");
+		}
+		
+		//Turning off Launch and giving clear to next Station when Launched train got over hill
+		if(stationLaunchBlock.getNumberOfTrainsOnBlock() == 0)
+		{
+			stationLoad.setTransportsOff();
+			liftLaunch.setTransportsOff();
+			stationUnload.setStationNextBlockClear();
+			System.out.println("Turned off LiftLaunch and gave clear for Unload Station");
+		}
+		
+		//Pulling the train from unload to load
+		if(stationUnload.isStationWaitingForAdvance() == true)
+		{
+			stationUnload.setStationLeaving();
+			stationUnload.setBrakesOff();
+			stationUnload.setTransportsStandardFwdOn();
+			stationLoad.setBrakesOff();
+			stationLoad.setTransportsStandardFwdOn();
+			stationLoad.setStationEntering();
+			System.out.println("Pulling next train into load Station");
+		}
+		
+		//Only here to find out how many trains are on the Station Block in an attempt to find when the Launched Train will leave the Block
+		//Spoiler: It never does
+		System.err.println(stationLaunchBlock.getNumberOfTrainsOnBlock());
+	}
+}
